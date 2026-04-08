@@ -135,7 +135,7 @@
       App.UI.renderRepoOverview(repoData);
 
       // Append connectivity section to overview
-      renderConnectivityResults(repoData, readResult.scopes, owner, repo);
+      renderConnectivityResults(repoData, readResult.scopes, readResult.scopesHeader, owner, repo);
 
       // Update sidebar counter badge if any data
       updateSidebarCounters();
@@ -180,7 +180,7 @@
    * Append the API connectivity section to the overview panel.
    * Shows READ ✓, WRITE status, rate limit, and scopes.
    */
-  async function renderConnectivityResults(repoData, scopes, owner, repo) {
+  async function renderConnectivityResults(repoData, scopes, scopesHeader, owner, repo) {
     const panel  = document.getElementById('panel-overview');
     if (!panel) return;
     const body   = panel.querySelector('.panel__body');
@@ -202,14 +202,28 @@
       `GET /repos/${owner}/${repo}`);
 
     // ── Scope card ────────────────────────────────────────────────────────
-    const hasRepoScope = scopes.includes('repo') || scopes.includes('public_repo');
-    addConnectivityCard(
-      grid,
-      'Token Scopes',
-      scopes.length > 0 ? scopes.join(', ') : '(none detected)',
-      hasRepoScope ? 'success' : 'warning',
-      hasRepoScope ? 'Scopes sufficient' : 'Consider adding "repo" scope for full access'
-    );
+    // Fine-grained PATs never send X-OAuth-Scopes (header is absent, scopesHeader === null).
+    // Classic tokens always send it (possibly empty string if no scopes granted).
+    // Only warn when we can confirm a classic token is missing the required scope.
+    const isFineGrained = scopesHeader === null;
+    const hasRepoScope  = scopes.includes('repo') || scopes.includes('public_repo');
+
+    let scopeStatusText, scopeType, scopeDetail;
+    if (isFineGrained) {
+      scopeStatusText = 'Fine-grained token';
+      scopeType       = 'primary';   // info-style blue — not a warning
+      scopeDetail     = 'Permissions are resource-specific; X-OAuth-Scopes not applicable';
+    } else if (hasRepoScope) {
+      scopeStatusText = scopes.join(', ');
+      scopeType       = 'success';
+      scopeDetail     = 'Scopes sufficient';
+    } else {
+      scopeStatusText = scopes.length > 0 ? scopes.join(', ') : '(no scopes)';
+      scopeType       = 'warning';
+      scopeDetail     = 'Add "repo" scope (or "public_repo" for public repos) for full access';
+    }
+
+    addConnectivityCard(grid, 'Token Scopes', scopeStatusText, scopeType, scopeDetail);
 
     // ── Rate limit card ───────────────────────────────────────────────────
     const rateLimits = App.State.get('rateLimits');

@@ -508,16 +508,21 @@
 
     updateRateLimits(response.headers);
 
-    const scopeHeader = response.headers.get('X-OAuth-Scopes') || '';
-    const scopes = scopeHeader.split(',').map(s => s.trim()).filter(Boolean);
+    // Fine-grained PATs do not send X-OAuth-Scopes at all.
+    // Distinguish null (header absent = fine-grained) from '' (classic token with no scopes).
+    const rawScopeHeader = response.headers.get('X-OAuth-Scopes');
+    const scopesHeader = rawScopeHeader; // null | string
+    const scopes = rawScopeHeader !== null
+      ? rawScopeHeader.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
 
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
-      return { ok: false, scopes, error: body.message || `HTTP ${response.status}`, status: response.status };
+      return { ok: false, scopes, scopesHeader, error: body.message || `HTTP ${response.status}`, status: response.status };
     }
 
     const data = await response.json();
-    return { ok: true, scopes, data };
+    return { ok: true, scopes, scopesHeader, data };
   }
 
   /**
@@ -546,7 +551,7 @@
         headers,
         body: JSON.stringify({
           message: 'chore: connectivity test (auto-delete)',
-          content: btoa('Git Repo Insight connectivity test — safe to delete\n'),
+          content: btoa(unescape(encodeURIComponent('Git Repo Insight connectivity test — safe to delete\n'))),
           branch: defaultBranch
         })
       });
