@@ -1,0 +1,91 @@
+/* heatmap.css — Divergence heatmap and comparison detail styles
+ * Depends on theme.css custom properties.
+ * Loaded after main.css and components.css.
+ */
+
+/* ─── Heatmap panel ─────────────────────────────────────────────────────── */
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.heatmap-legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.heatmap-legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.heatmap-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.heatmap-canvas-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  display: inline-block;
+}
+
+.heatmap-canvas {
+  display: block;
+  cursor: crosshair;
+}
+
+/* Tooltip is appended to <body>, positioned via JS */
+.heatmap-tooltip {
+  position: fixed;
+  background-color: rgba(27, 31, 36, 0.92);
+  color: #e6edf3;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 600;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  box-shadow: var(--shadow-md);
+}
+
+.heatmap-tooltip--visible {
+  opacity: 1;
+}
+
+/* ─── Comparison detail panel (below heatmap) ───────────────────────────── */
+.comparison-detail {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  margin-top: var(--space-4);
+  background-color: var(--color-bg-secondary);
+}
+
+.comparison-detail__title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}

@@ -145,6 +145,14 @@
       // Enable sidebar navigation
       enableSidebar();
 
+      // ── Phase 2: Trigger branch loading ──────────────────────────────────
+      // branches.js enriches each branch with last-commit data, computes
+      // activity metrics (written to State), and updates the sidebar counter.
+      // heatmap.js and health.js subscribe to currentPanel and self-activate.
+      if (window.App.Branches) {
+        App.Branches.loadBranches();
+      }
+
     } catch (err) {
       let msg = `Connection failed: ${err.message}`;
 
@@ -509,6 +517,10 @@
     App.UI.initRateLimitDisplay();
     App.UI.initOpLog();
 
+    // Subscribe to activityMetrics — renders the Branch Activity section
+    // in the Overview panel whenever branches.js updates the data.
+    App.State.subscribe('activityMetrics', renderActivityMetrics);
+
     // Wire connect button
     const connectBtn = document.getElementById('connect-btn');
     if (connectBtn) {
@@ -564,6 +576,112 @@
   } else {
     // DOMContentLoaded already fired (script is deferred or at bottom of body)
     init();
+  }
+
+  // ─── Activity metrics for Overview panel ────────────────────────────────────
+
+  /**
+   * Append (or replace) the activity metrics section in the Overview panel.
+   * Subscribed to the 'activityMetrics' State key; called whenever
+   * branches.js computes or updates metrics.
+   * @param {{ totalBranches, staleBranches, latestCommit, mostActiveBranch }} metrics
+   */
+  function renderActivityMetrics(metrics) {
+    if (!metrics) return;
+
+    // Only append to Overview if it is currently showing a connected repo
+    const repoState = App.State.get('repo');
+    if (!repoState) return;
+
+    const panel = document.getElementById('panel-overview');
+    if (!panel) return;
+    const body = panel.querySelector('.panel__body');
+    if (!body) return;
+
+    // Remove stale section if present
+    const existing = document.getElementById('overview-activity-section');
+    if (existing) existing.remove();
+
+    const section = document.createElement('div');
+    section.id = 'overview-activity-section';
+
+    // Section divider
+    const divider = document.createElement('div');
+    divider.className   = 'section-divider';
+    divider.textContent = 'Branch Activity';
+    section.appendChild(divider);
+
+    // Metrics grid
+    const grid = document.createElement('div');
+    grid.className = 'activity-grid';
+
+    const metricItems = [
+      {
+        label: 'Total Branches',
+        value: String(metrics.totalBranches ?? '—')
+      },
+      {
+        label: 'Stale Branches',
+        value: String(metrics.staleBranches ?? '—'),
+        note:  'no commits in 90+ days'
+      },
+      {
+        label: 'Most Active Branch',
+        value: metrics.mostActiveBranch
+          ? _truncateName(metrics.mostActiveBranch, 22)
+          : '—',
+        mono:  true
+      },
+      {
+        label: 'Last Commit (any branch)',
+        value: metrics.latestCommit
+          ? App.UI.formatRelativeDate(metrics.latestCommit.date)
+          : '—',
+        note: metrics.latestCommit
+          ? _truncateName(metrics.latestCommit.branch, 28)
+          : null
+      }
+    ];
+
+    metricItems.forEach(({ label, value, note, mono }) => {
+      const card = document.createElement('div');
+      card.className = 'activity-metric';
+
+      const valEl = document.createElement('div');
+      valEl.className   = 'activity-metric__value' + (mono ? ' mono' : '');
+      valEl.textContent = value;
+      if (value.length > 14) {
+        // Use smaller font for long names
+        valEl.style.fontSize = 'var(--font-size-sm)';
+        valEl.style.wordBreak = 'break-all';
+      }
+      card.appendChild(valEl);
+
+      const lblEl = document.createElement('div');
+      lblEl.className   = 'activity-metric__label';
+      lblEl.textContent = label;
+      card.appendChild(lblEl);
+
+      if (note) {
+        const noteEl = document.createElement('div');
+        noteEl.className   = 'activity-metric__note';
+        noteEl.textContent = note;
+        card.appendChild(noteEl);
+      }
+
+      grid.appendChild(card);
+    });
+
+    section.appendChild(grid);
+    body.appendChild(section);
+  }
+
+  /** Truncate a branch name in the middle for display */
+  function _truncateName(name, max) {
+    if (!name) return '—';
+    if (name.length <= max) return name;
+    const half = Math.floor((max - 1) / 2);
+    return name.slice(0, half) + '…' + name.slice(-half);
   }
 
   // Expose top-level utilities

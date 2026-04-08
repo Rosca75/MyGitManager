@@ -481,6 +481,27 @@
   }
 
   /**
+   * Fetch commits on a branch since a given ISO date (for activity metrics).
+   * Returns up to perPage commits — caller counts the array length.
+   * @param {string} owner
+   * @param {string} repo
+   * @param {string} branch
+   * @param {string} since   ISO 8601 date string, e.g. new Date(…).toISOString()
+   * @param {number} [perPage=100]
+   * @returns {Promise<object[]>}
+   */
+  async function getCommitsSince(owner, repo, branch, since, perPage = 100) {
+    const endpoint = `/repos/${owner}/${repo}/commits?sha=${encodeURIComponent(branch)}&since=${encodeURIComponent(since)}&per_page=${perPage}`;
+    const C = window.App.Cache;
+    // Key on date-only portion (YYYY-MM-DD) so intra-day re-fetches are cached
+    const ck = C.keyFor(`${owner}/${repo}`, `commits-since:${branch}:${since.slice(0, 10)}`);
+    return ghFetch(endpoint, {
+      cacheKey: ck,
+      ttl: C.TTL.COMMITS
+    });
+  }
+
+  /**
    * Fetch current rate limit status.
    * @returns {Promise<object>}
    */
@@ -609,6 +630,7 @@
     compareBranches,
     getContents,
     getCommits,
+    getCommitsSince,
     getRateLimit,
     testReadAccess,
     testWriteAccess,

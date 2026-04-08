@@ -25,9 +25,11 @@
   <!-- Favicon (inline SVG as data URI avoids a network request) -->
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 
-  <!-- Styles: theme.css first (defines custom properties), then main.css -->
+  <!-- Styles: theme.css → main.css (layout) → components.css (UI) → heatmap.css -->
   <link rel="stylesheet" href="css/theme.css">
   <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/heatmap.css">
 </head>
 
 <body>
@@ -573,6 +575,10 @@
   <script src="js/cache.js"></script>
   <script src="js/api.js"></script>
   <script src="js/ui.js"></script>
+  <!-- Phase 2 modules — load before app.js so window.App.Branches etc. exist -->
+  <script src="js/branches.js"></script>
+  <script src="js/heatmap.js"></script>
+  <script src="js/health.js"></script>
   <script src="js/app.js"></script>
 
 </body>
