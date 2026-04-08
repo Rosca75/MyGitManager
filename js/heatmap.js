@@ -54,6 +54,14 @@
   /** Whether a full heatmap load is in progress */
   let _loading = false;
 
+  /**
+   * Monotonically-increasing counter that is bumped each time _initHeatmap()
+   * runs.  Async callbacks capture the generation at call-site and bail if it
+   * no longer matches the module-level counter, preventing stale fetches from
+   * a previous repo connect from polluting a fresh one.
+   */
+  let _fetchGeneration = 0;
+
   // ─── Panel activation ────────────────────────────────────────────────────────
 
   /**
@@ -83,8 +91,9 @@
       if (panelId === 'panel-divergence') onPanelActivate();
     });
 
-    // Also refresh when branch data arrives (branches.js sets this)
-    window.App.State.subscribe('branches', () => {
+    // Refresh when enrichment completes (branches.js sets activityMetrics after
+    // _enrichedBranches is fully populated — avoids firing on raw branch list)
+    window.App.State.subscribe('activityMetrics', () => {
       if (App.State.get('currentPanel') === 'panel-divergence') {
         onPanelActivate();
       }
@@ -115,16 +124,24 @@
     _matrix = Array.from({ length: N }, () => new Array(N).fill(null));
     _selectedCell = null;
 
+    // Bump generation so any in-flight fetches from a previous connect bail out
+    _fetchGeneration++;
+    const myGeneration = _fetchGeneration;
+
+    // Always reset loading flag so a reconnect can start fresh
+    _loading = false;
+
     // Build the panel skeleton
     App.UI.renderPanel('panel-divergence', (body) => {
       _buildPanelDOM(body, N, owner, repo);
     });
 
     // Start fetching comparisons (lazy — upper triangle)
-    if (!_loading) {
-      _loading = true;
-      _fetchAllComparisons(owner, repo, N).finally(() => { _loading = false; });
-    }
+    _loading = true;
+    _fetchAllComparisons(owner, repo, N, myGeneration).finally(() => {
+      // Only clear loading flag if still our generation
+      if (_fetchGeneration === myGeneration) _loading = false;
+    });
   }
 
   /**
@@ -229,8 +246,13 @@
   /**
    * Fetch all pairwise comparisons for the upper triangle.
    * Each result fills both matrix[i][j] and matrix[j][i].
+   * @param {string} owner
+   * @param {string} repo
+   * @param {number} N           Number of branches in this run
+   * @param {number} generation  Snapshot of _fetchGeneration at call time;
+   *                             batches bail early if generation has advanced.
    */
-  async function _fetchAllComparisons(owner, repo, N) {
+  async function _fetchAllComparisons(owner, repo, N, generation) {
     let fetched = 0;
     const total = _totalPairs(N);
 
@@ -245,6 +267,9 @@
     // Fetch in batches of 4 to avoid saturating the queue
     const BATCH = 4;
     for (let b = 0; b < pairs.length; b += BATCH) {
+      // Bail if a newer repo connect has started
+      if (_fetchGeneration !== generation) return;
+
       const batch = pairs.slice(b, b + BATCH);
       await Promise.allSettled(
         batch.map(async ([i, j]) => {
@@ -649,7 +674,9 @@
       detail.appendChild(list);
 
     } catch (err) {
-      detail.removeChild(loadNote);
+      // Guard: loadNote may have already been removed in the try block if the
+      // API threw after the successful removeChild (e.g., commit parsing error)
+      if (loadNote.parentNode) detail.removeChild(loadNote);
       const errMsg = document.createElement('p');
       errMsg.className   = 'text-muted text-sm';
       errMsg.textContent = 'Failed to fetch comparison: ' + err.message;

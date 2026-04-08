@@ -678,7 +678,8 @@
 
   /** Truncate a branch name in the middle for display */
   function _truncateName(name, max) {
-    if (!name || name.length <= max) return name;
+    if (!name) return '—';
+    if (name.length <= max) return name;
     const half = Math.floor((max - 1) / 2);
     return name.slice(0, half) + '…' + name.slice(-half);
   }

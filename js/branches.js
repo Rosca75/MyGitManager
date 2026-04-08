@@ -54,6 +54,11 @@
     _enrichedBranches = [];
     _expandedBranch   = null;
 
+    // Reset UI state so switching repos starts with a clean table
+    _filterText = '';
+    _sortKey    = 'date';
+    _sortDir    = 'desc';
+
     try {
       const branches = await App.API.getBranches(owner, repo);
       App.State.set('branches', branches);
