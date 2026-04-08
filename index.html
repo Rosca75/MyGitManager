@@ -1,1 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Git Repository Insight — branch analysis, divergence heatmap, tag management, and LLM-ready export for GitHub repositories.">
 
+  <!--
+    Content-Security-Policy: Restricts network requests to api.github.com only.
+    No inline scripts (all JS is external). No eval().
+    Adjust if self-hosting behind a proxy.
+  -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none';
+                 script-src 'self';
+                 style-src 'self';
+                 connect-src https://api.github.com;
+                 img-src 'self' https://avatars.githubusercontent.com data:;
+                 font-src 'self';
+                 form-action 'none';
+                 base-uri 'self';">
+
+  <title>Git Repo Insight</title>
+
+  <!-- Favicon (inline SVG as data URI avoids a network request) -->
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+
+  <!-- Styles: theme.css first (defines custom properties), then main.css -->
+  <link rel="stylesheet" href="css/theme.css">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+
+<body>
+  <!--
+    LAYOUT: header + (sidebar | main) + footer
+    All panels are rendered in #panel-* elements; only one is visible at a time.
+    Navigation handled by ui.js showPanel().
+  -->
+  <div class="app">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         HEADER — repo input, PAT, connect button, rate limit display
+    ═══════════════════════════════════════════════════════════════════ -->
+    <header class="app-header" role="banner">
+
+      <!-- Brand -->
+      <div class="app-header__brand" aria-label="Git Repo Insight">
+        <svg class="app-header__brand-icon" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
+                   0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13
+                   -.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66
+                   .07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15
+                   -.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27
+                   .68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12
+                   .51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48
+                   0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        <span>Git Repo Insight</span>
+      </div>
+
+      <!-- Repository input and connect controls -->
+      <div class="app-header__inputs" role="search" aria-label="Repository connection">
+
+        <label class="visually-hidden" for="repo-input">Repository (owner/repo or GitHub URL)</label>
+        <input
+          type="text"
+          id="repo-input"
+          class="app-header__repo-input"
+          placeholder="owner/repo or GitHub URL"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          aria-label="Repository identifier"
+        >
+
+        <!-- PAT input group -->
+        <div class="app-header__pat-group">
+          <label class="visually-hidden" for="pat-input">Personal Access Token</label>
+          <input
+            type="password"
+            id="pat-input"
+            class="app-header__pat-input"
+            placeholder="Personal Access Token"
+            autocomplete="off"
+            aria-label="GitHub Personal Access Token"
+            title="Enter your GitHub PAT. It is stored in memory only and never saved."
+          >
+
+          <!--
+            File input for loading PAT from a .txt file.
+            Hidden; triggered by clicking the label button.
+            This avoids the user having to type a long token.
+          -->
+          <input
+            type="file"
+            id="pat-file"
+            class="app-header__pat-file"
+            accept=".txt,text/plain"
+            aria-label="Load token from file"
+            tabindex="-1"
+          >
+          <label
+            for="pat-file"
+            class="btn btn--secondary btn--sm"
+            title="Load PAT from a .txt file"
+            role="button"
+            tabindex="0"
+          >
+            Load PAT
+          </label>
+        </div>
+
+        <button
+          type="button"
+          id="connect-btn"
+          class="btn btn--primary"
+          aria-label="Connect to repository"
+          title="Connect (Ctrl+Enter)"
+        >
+          Connect
+        </button>
+
+      </div><!-- /.app-header__inputs -->
+
+      <!-- Rate limit display -->
+      <div class="app-header__rate-limit" id="rate-limit-container" aria-live="polite" aria-label="API rate limit">
+        <span class="app-header__rate-limit-dot" id="rate-limit-dot" aria-hidden="true"></span>
+        <span id="rate-limit-display"></span>
+      </div>
+
+      <!-- Theme toggle -->
+      <button
+        type="button"
+        id="theme-toggle"
+        class="app-header__theme-toggle"
+        aria-label="Switch to dark mode"
+        title="Toggle dark/light theme"
+      >
+        ☾
+      </button>
+
+    </header><!-- /.app-header -->
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         BODY — sidebar navigation + main content area
+    ═══════════════════════════════════════════════════════════════════ -->
+    <div class="app-body">
+
+      <!-- ───────────────────────────────────────────────────────────
+           SIDEBAR NAVIGATION
+      ─────────────────────────────────────────────────────────────── -->
+      <nav class="app-sidebar" role="navigation" aria-label="Dashboard navigation">
+
+        <div class="sidebar-nav__label" id="nav-label-analysis">Analysis</div>
+
+        <button
+          type="button"
+          class="sidebar-nav__item sidebar-nav__item--active"
+          data-panel="panel-overview"
+          role="tab"
+          aria-selected="true"
+          aria-controls="panel-overview"
+        >
+          <svg class="sidebar-nav__icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/>
+          </svg>
+          Overview
+        </button>
+
+        <button
+          type="button"
+          class="sidebar-nav__item"
+          data-panel="panel-branches"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-branches"
+        >
+          <svg class="sidebar-nav__icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.493 2.493 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Z"/>
+          </svg>
+          Branches
+          <span class="sidebar-nav__count" id="nav-count-branches" aria-label="branch count"></span>
+        </button>
+
+        <button
+          type="button"
+          class="sidebar-nav__item"
+          data-panel="panel-tags"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-tags"
+        >
+          <svg class="sidebar-nav__icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M1 7.775V2.75C1 1.784 1.784 1 2.75 1h5.025c.464 0 .91.184 1.238.513l6.25 6.25a1.75 1.75 0 0 1 0 2.474l-5.026 5.026a1.75 1.75 0 0 1-2.474 0l-6.25-6.25A1.752 1.752 0 0 1 1 7.775Zm1.5 0c0 .066.026.13.073.177l6.25 6.25a.25.25 0 0 0 .354 0l5.025-5.025a.25.25 0 0 0 0-.354l-6.25-6.25a.25.25 0 0 0-.177-.073H2.75a.25.25 0 0 0-.25.25ZM6 5a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z"/>
+          </svg>
+          Tags
+          <span class="sidebar-nav__count" id="nav-count-tags" aria-label="tag count"></span>
+        </button>
+
+        <button
+          type="button"
+          class="sidebar-nav__item"
+          data-panel="panel-releases"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-releases"
+        >
+          <svg class="sidebar-nav__icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M2 7.75C2 6.784 2.784 6 3.75 6h.75v-.75C4.5 4.232 5.232 3.5 6 3.5h.379a1.5 1.5 0 0 1 1.06.44l.622.621a.25.25 0 0 0 .177.073H10.5a.5.5 0 0 1 .5.5V5.5h.75c.966 0 1.75.784 1.75 1.75v5A1.75 1.75 0 0 1 11.75 14H4.25A1.75 1.75 0 0 1 2.5 12.25v-4.5Z"/>
+          </svg>
+          Releases
+          <span class="sidebar-nav__count" id="nav-count-releases" aria-label="release count"></span>
+        </button>
+
+        <div class="sidebar-nav__divider" role="separator"></div>
+        <div class="sidebar-nav__label">Visualization</div>
+
+        <button
+          type="button"
+          class="sidebar-nav__item"
+          data-panel="panel-divergence"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-divergence"
+        >
+          <svg class="sidebar-nav__icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M1.5 1.75V13.5h13.75a.75.75 0 0 1 0 1.5H.75a.75.75 0 0 1-.75-.75V1.75a.75.75 0 0 1 1.5 0Zm14.28 2.53-5.25 5.25a.75.75 0 0 1-1.06 0L7 7.06 4.28 9.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.25-3.25a.75.75 0 0 1 1.06 0L9 7.94l4.72-4.72a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"/>
+          </svg>
+          Divergence
+        </button>
+
+        <div class="sidebar-nav__divider" role="separator"></div>
+        <div class="sidebar-nav__label">Insights</div>
+
+        <button
+          type="button"
+          class="sidebar-nav__item"
+          data-panel="panel-health"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-health"
+        >
+          <svg class="sidebar-nav__icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M7.5 1.5a.75.75 0 0 1 .75.75v3.757l2.782-1.687a.75.75 0 0 1 .728 1.31l-3.25 1.972a.75.75 0 0 1-.76 0L4.5 5.63a.75.75 0 0 1 .728-1.31L8.25 5.593V2.25A.75.75 0 0 1 7.5 1.5ZM4.5 8a.75.75 0 0 1 .75.75v4.75h1.5V10a.75.75 0 0 1 1.5 0v3.5h1.5V8.75a.75.75 0 0 1 1.5 0v4.75A.75.75 0 0 1 11 14.25h-6.5A.75.75 0 0 1 3.75 13.5V8.75A.75.75 0 0 1 4.5 8Z"/>
+          </svg>
+          Health
+        </button>
+
+        <button
+          type="button"
+          class="sidebar-nav__item"
+          data-panel="panel-commits"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-commits"
+        >
+          <svg class="sidebar-nav__icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M11.93 8.5a4.002 4.002 0 0 1-7.86 0H1.75a.75.75 0 0 1 0-1.5h2.32a4.002 4.002 0 0 1 7.86 0h2.32a.75.75 0 0 1 0 1.5Zm-1.43-.75a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0Z"/>
+          </svg>
+          Commits
+        </button>
+
+        <div class="sidebar-nav__divider" role="separator"></div>
+        <div class="sidebar-nav__label">Actions</div>
+
+        <button
+          type="button"
+          class="sidebar-nav__item"
+          data-panel="panel-export"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-export"
+        >
+          <svg class="sidebar-nav__icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Zm-1-5.75a.75.75 0 0 1 1.06-1.06L8 12.44l5.19-5.19a.75.75 0 1 1 1.06 1.06l-5.75 5.75a.75.75 0 0 1-1.06 0Z"/>
+          </svg>
+          Export
+        </button>
+
+        <button
+          type="button"
+          class="sidebar-nav__item"
+          data-panel="panel-actions"
+          role="tab"
+          aria-selected="false"
+          aria-controls="panel-actions"
+        >
+          <svg class="sidebar-nav__icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7-3.25v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.751.751 0 0 1 7 8.25v-3.5a.75.75 0 0 1 1.5 0Z"/>
+          </svg>
+          Actions
+        </button>
+
+      </nav><!-- /.app-sidebar -->
+
+      <!-- ───────────────────────────────────────────────────────────
+           MAIN CONTENT AREA — tab panels
+      ─────────────────────────────────────────────────────────────── -->
+      <main class="app-main" id="main-content" role="main">
+
+        <!-- ── Overview panel ──────────────────────────────────── -->
+        <section
+          class="panel panel--active"
+          id="panel-overview"
+          role="tabpanel"
+          aria-labelledby="nav-overview"
+          tabindex="0"
+        >
+          <div class="panel__header">
+            <div>
+              <h1 class="panel__title">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="20" height="20" aria-hidden="true">
+                  <path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/>
+                </svg>
+                Overview
+              </h1>
+              <p class="panel__subtitle">Repository metadata and API connectivity</p>
+            </div>
+          </div>
+          <div class="panel__body">
+            <!-- Populated by app.js renderWelcome() / renderRepoOverview() -->
+          </div>
+        </section><!-- /#panel-overview -->
+
+        <!-- ── Branches panel ─────────────────────────────────── -->
+        <section
+          class="panel"
+          id="panel-branches"
+          role="tabpanel"
+          aria-labelledby="nav-branches"
+          tabindex="0"
+        >
+          <div class="panel__header">
+            <div>
+              <h1 class="panel__title">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="20" height="20" aria-hidden="true">
+                  <path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.493 2.493 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Z"/>
+                </svg>
+                Branches
+              </h1>
+              <p class="panel__subtitle">Branch list with staleness and activity badges</p>
+            </div>
+            <div class="panel__actions">
+              <button type="button" class="btn btn--secondary btn--sm" id="btn-refresh-branches">
+                Refresh
+              </button>
+            </div>
+          </div>
+          <div class="panel__body">
+            <div class="empty-state">
+              <p class="empty-state__description">Connect to a repository to view branches.</p>
+            </div>
+          </div>
+        </section><!-- /#panel-branches -->
+
+        <!-- ── Tags panel ─────────────────────────────────────── -->
+        <section
+          class="panel"
+          id="panel-tags"
+          role="tabpanel"
+          aria-labelledby="nav-tags"
+          tabindex="0"
+        >
+          <div class="panel__header">
+            <div>
+              <h1 class="panel__title">
+                <svg viewBox="0 0 16 16" fill="currentColor" width="20" height="20" aria-hidden="true">
+                  <path d="M1 7.775V2.75C1 1.784 1.784 1 2.75 1h5.025c.464 0 .91.184 1.238.513l6.25 6.25a1.75 1.75 0 0 1 0 2.474l-5.026 5.026a1.75 1.75 0 0 1-2.474 0l-6.25-6.25A1.752 1.752 0 0 1 1 7.775Zm1.5 0c0 .066.026.13.073.177l6.25 6.25a.25.25 0 0 0 .354 0l5.025-5.025a.25.25 0 0 0 0-.354l-6.25-6.25a.25.25 0 0 0-.177-.073H2.75a.25.25 0 0 0-.25.25ZM6 5a1 1 0 1 1 0 2 1 1 0 0 1 0-2Z"/>
+                </svg>
+                Tags &amp; Releases
+              </h1>
+              <p class="panel__subtitle">Semantic version tags, annotated tags, and GitHub releases</p>
+            </div>
+          </div>
+          <div class="panel__body">
+            <div class="empty-state">
+              <p class="empty-state__description">Connect to a repository to view tags.</p>
+            </div>
+          </div>
+        </section><!-- /#panel-tags -->
+
+        <!-- ── Releases panel ─────────────────────────────────── -->
+        <section
+          class="panel"
+          id="panel-releases"
+          role="tabpanel"
+          aria-labelledby="nav-releases"
+          tabindex="0"
+        >
+          <div class="panel__header">
+            <div>
+              <h1 class="panel__title">Releases</h1>
+              <p class="panel__subtitle">Published and draft GitHub releases</p>
+            </div>
+          </div>
+          <div class="panel__body">
+            <div class="empty-state">
+              <p class="empty-state__description">Connect to a repository to view releases.</p>
+            </div>
+          </div>
+        </section><!-- /#panel-releases -->
+
+        <!-- ── Divergence panel ───────────────────────────────── -->
+        <section
+          class="panel"
+          id="panel-divergence"
+          role="tabpanel"
+          aria-labelledby="nav-divergence"
+          tabindex="0"
+        >
+          <div class="panel__header">
+            <div>
+              <h1 class="panel__title">Branch Divergence</h1>
+              <p class="panel__subtitle">Pairwise commit-ahead/behind heatmap</p>
+            </div>
+          </div>
+          <div class="panel__body">
+            <div class="empty-state">
+              <p class="empty-state__description">Connect to a repository to view the divergence matrix.</p>
+            </div>
+          </div>
+        </section><!-- /#panel-divergence -->
+
+        <!-- ── Health panel ───────────────────────────────────── -->
+        <section
+          class="panel"
+          id="panel-health"
+          role="tabpanel"
+          aria-labelledby="nav-health"
+          tabindex="0"
+        >
+          <div class="panel__header">
+            <div>
+              <h1 class="panel__title">Repository Health</h1>
+              <p class="panel__subtitle">Key file detection and health score</p>
+            </div>
+          </div>
+          <div class="panel__body">
+            <div class="empty-state">
+              <p class="empty-state__description">Connect to a repository to run a health check.</p>
+            </div>
+          </div>
+        </section><!-- /#panel-health -->
+
+        <!-- ── Commits panel ──────────────────────────────────── -->
+        <section
+          class="panel"
+          id="panel-commits"
+          role="tabpanel"
+          aria-labelledby="nav-commits"
+          tabindex="0"
+        >
+          <div class="panel__header">
+            <div>
+              <h1 class="panel__title">Commit History</h1>
+              <p class="panel__subtitle">Paginated commit explorer with conventional commit badges</p>
+            </div>
+          </div>
+          <div class="panel__body">
+            <div class="empty-state">
+              <p class="empty-state__description">Connect to a repository to explore commits.</p>
+            </div>
+          </div>
+        </section><!-- /#panel-commits -->
+
+        <!-- ── Export panel ───────────────────────────────────── -->
+        <section
+          class="panel"
+          id="panel-export"
+          role="tabpanel"
+          aria-labelledby="nav-export"
+          tabindex="0"
+        >
+          <div class="panel__header">
+            <div>
+              <h1 class="panel__title">Export Report</h1>
+              <p class="panel__subtitle">Download structured TXT/JSON for LLM consumption</p>
+            </div>
+          </div>
+          <div class="panel__body">
+            <div class="empty-state">
+              <p class="empty-state__description">Connect to a repository to generate an export.</p>
+            </div>
+          </div>
+        </section><!-- /#panel-export -->
+
+        <!-- ── Actions panel ──────────────────────────────────── -->
+        <section
+          class="panel"
+          id="panel-actions"
+          role="tabpanel"
+          aria-labelledby="nav-actions"
+          tabindex="0"
+        >
+          <div class="panel__header">
+            <div>
+              <h1 class="panel__title">Write Actions</h1>
+              <p class="panel__subtitle">Create branches, tags, releases, and commit files</p>
+            </div>
+            <div class="panel__actions">
+              <!-- Dry-run toggle — will be wired in Phase 4 -->
+              <label class="flex items-center gap-2 text-sm" title="Dry-run mode: preview actions without executing them">
+                <input type="checkbox" id="dry-run-toggle" checked aria-label="Dry-run mode">
+                Dry-run mode
+              </label>
+            </div>
+          </div>
+          <div class="panel__body">
+            <div class="empty-state">
+              <p class="empty-state__description">Connect to a repository to enable write actions.</p>
+            </div>
+          </div>
+        </section><!-- /#panel-actions -->
+
+      </main><!-- /.app-main -->
+
+    </div><!-- /.app-body -->
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         OPERATION LOG FOOTER — collapsible, shows all API calls made
+    ═══════════════════════════════════════════════════════════════════ -->
+    <footer class="app-footer" role="contentinfo" aria-label="Operation log">
+      <div class="op-log" id="op-log" aria-live="off">
+
+        <!-- Clickable header toggles the log open/closed -->
+        <div
+          class="op-log__header"
+          role="button"
+          tabindex="0"
+          aria-expanded="false"
+          aria-controls="op-log-entries"
+          id="op-log-toggle"
+        >
+          <span class="op-log__title">Operation Log</span>
+          <span class="op-log__count" id="op-log-count" aria-label="total operations">0</span>
+          <span class="op-log__toggle-icon" aria-hidden="true">▲</span>
+        </div>
+
+        <!-- Scrollable log entries (visible only when expanded) -->
+        <div
+          class="op-log__entries"
+          id="op-log-entries"
+          role="log"
+          aria-label="API operation history"
+          aria-live="polite"
+        >
+          <!-- Entries injected by ui.js renderOpLog() -->
+        </div>
+
+      </div><!-- /.op-log -->
+    </footer><!-- /.app-footer -->
+
+  </div><!-- /.app -->
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       TOAST NOTIFICATION CONTAINER (fixed, above all content)
+  ═══════════════════════════════════════════════════════════════════ -->
+  <div
+    id="toast-container"
+    class="toast-container"
+    role="region"
+    aria-label="Notifications"
+    aria-live="polite"
+  ></div>
+
+  <!--
+    JavaScript — loaded at bottom of body, no ES modules.
+    Load order matters: state → cache → api → ui → app
+    Each file wraps in IIFE and attaches to window.App.
+  -->
+  <script src="js/state.js"></script>
+  <script src="js/cache.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

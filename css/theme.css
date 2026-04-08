@@ -1,0 +1,225 @@
+/* theme.css — CSS custom properties for light and dark themes
+ * All design tokens live here. Components reference these variables.
+ * Dark mode is activated by adding data-theme="dark" to <html>.
+ */
+
+/* ─── Light Theme (default) ─────────────────────────────────────────────── */
+:root {
+  /* Brand / accent */
+  --color-accent:          #0969da;
+  --color-accent-hover:    #0550ae;
+  --color-accent-subtle:   #dbeafe;
+
+  /* Backgrounds */
+  --color-bg:              #ffffff;
+  --color-bg-secondary:    #f6f8fa;
+  --color-bg-tertiary:     #eaeef2;
+  --color-bg-overlay:      rgba(0, 0, 0, 0.5);
+
+  /* Borders */
+  --color-border:          #d0d7de;
+  --color-border-subtle:   #e8ecf0;
+  --color-border-muted:    #afb8c1;
+
+  /* Text */
+  --color-text:            #1f2328;
+  --color-text-secondary:  #636c76;
+  --color-text-muted:      #848d97;
+  --color-text-inverse:    #ffffff;
+  --color-text-link:       #0969da;
+
+  /* Status / semantic colors */
+  --color-success:         #1a7f37;
+  --color-success-bg:      #dafbe1;
+  --color-success-border:  #82e09a;
+  --color-warning:         #9a6700;
+  --color-warning-bg:      #fff8c5;
+  --color-warning-border:  #eac54f;
+  --color-danger:          #d1242f;
+  --color-danger-bg:       #ffebe9;
+  --color-danger-border:   #ff8182;
+  --color-info:            #0550ae;
+  --color-info-bg:         #dbeafe;
+  --color-info-border:     #54aeff;
+  --color-neutral:         #6e7781;
+  --color-neutral-bg:      #f6f8fa;
+  --color-neutral-border:  #afb8c1;
+
+  /* Badges */
+  --badge-default-bg:      #f6f8fa;
+  --badge-default-text:    #636c76;
+  --badge-default-border:  #d0d7de;
+  --badge-stale-bg:        #fff8c5;
+  --badge-stale-text:      #9a6700;
+  --badge-stale-border:    #eac54f;
+  --badge-active-bg:       #dafbe1;
+  --badge-active-text:     #1a7f37;
+  --badge-active-border:   #82e09a;
+  --badge-merged-bg:       #ebe5ff;
+  --badge-merged-text:     #6e40c9;
+  --badge-merged-border:   #bf8ff8;
+  --badge-protected-bg:    #dbeafe;
+  --badge-protected-text:  #0550ae;
+  --badge-protected-border:#54aeff;
+
+  /* Commit type pill colors */
+  --pill-feat-bg:          #dbeafe;
+  --pill-feat-text:        #0550ae;
+  --pill-fix-bg:           #ffebe9;
+  --pill-fix-text:         #d1242f;
+  --pill-docs-bg:          #dafbe1;
+  --pill-docs-text:        #1a7f37;
+  --pill-chore-bg:         #f6f8fa;
+  --pill-chore-text:       #636c76;
+  --pill-refactor-bg:      #fff8c5;
+  --pill-refactor-text:    #9a6700;
+  --pill-perf-bg:          #ebe5ff;
+  --pill-perf-text:        #6e40c9;
+  --pill-test-bg:          #fff0e3;
+  --pill-test-text:        #bc4c00;
+  --pill-ci-bg:            #f6f8fa;
+  --pill-ci-text:          #24292f;
+
+  /* Heatmap colors */
+  --heatmap-sync:          #1a7f37;   /* green  — 0 divergence */
+  --heatmap-minor:         #eac54f;   /* yellow — 1–10 commits */
+  --heatmap-moderate:      #d4813a;   /* orange — 11–50 commits */
+  --heatmap-severe:        #d1242f;   /* red    — 50+ commits */
+  --heatmap-self:          #eaeef2;   /* self cell (diagonal) */
+
+  /* Layout */
+  --sidebar-width:         220px;
+  --header-height:         56px;
+  --footer-collapsed-height: 40px;
+  --footer-expanded-height:  200px;
+
+  /* Typography */
+  --font-sans:             -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono:             ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --font-size-xs:          11px;
+  --font-size-sm:          12px;
+  --font-size-base:        14px;
+  --font-size-md:          16px;
+  --font-size-lg:          20px;
+  --font-size-xl:          24px;
+  --line-height:           1.5;
+
+  /* Spacing scale */
+  --space-1:               4px;
+  --space-2:               8px;
+  --space-3:               12px;
+  --space-4:               16px;
+  --space-5:               20px;
+  --space-6:               24px;
+  --space-8:               32px;
+  --space-10:              40px;
+
+  /* Border radii */
+  --radius-sm:             4px;
+  --radius-md:             6px;
+  --radius-lg:             8px;
+  --radius-xl:             12px;
+  --radius-full:           9999px;
+
+  /* Shadows */
+  --shadow-sm:             0 1px 2px rgba(31,35,40,0.08);
+  --shadow-md:             0 3px 6px rgba(31,35,40,0.10), 0 8px 24px rgba(66,74,83,0.10);
+  --shadow-lg:             0 8px 24px rgba(31,35,40,0.12);
+  --shadow-overlay:        0 16px 32px rgba(31,35,40,0.16);
+
+  /* Transitions */
+  --transition-fast:       80ms ease;
+  --transition-base:       160ms ease;
+  --transition-slow:       300ms ease;
+}
+
+/* ─── Dark Theme ─────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  /* Brand / accent */
+  --color-accent:          #4493f8;
+  --color-accent-hover:    #6eb0ff;
+  --color-accent-subtle:   #1d3d6e;
+
+  /* Backgrounds */
+  --color-bg:              #0d1117;
+  --color-bg-secondary:    #161b22;
+  --color-bg-tertiary:     #21262d;
+  --color-bg-overlay:      rgba(0, 0, 0, 0.7);
+
+  /* Borders */
+  --color-border:          #30363d;
+  --color-border-subtle:   #21262d;
+  --color-border-muted:    #484f58;
+
+  /* Text */
+  --color-text:            #e6edf3;
+  --color-text-secondary:  #8b949e;
+  --color-text-muted:      #6e7681;
+  --color-text-inverse:    #0d1117;
+  --color-text-link:       #4493f8;
+
+  /* Status / semantic colors */
+  --color-success:         #3fb950;
+  --color-success-bg:      #0f2f1a;
+  --color-success-border:  #196c2e;
+  --color-warning:         #d29922;
+  --color-warning-bg:      #2e2300;
+  --color-warning-border:  #6e4c00;
+  --color-danger:          #f85149;
+  --color-danger-bg:       #2d0f0f;
+  --color-danger-border:   #6e1a1a;
+  --color-info:            #58a6ff;
+  --color-info-bg:         #0c2035;
+  --color-info-border:     #1d4880;
+  --color-neutral:         #8b949e;
+  --color-neutral-bg:      #161b22;
+  --color-neutral-border:  #30363d;
+
+  /* Badges */
+  --badge-default-bg:      #21262d;
+  --badge-default-text:    #8b949e;
+  --badge-default-border:  #30363d;
+  --badge-stale-bg:        #2e2300;
+  --badge-stale-text:      #d29922;
+  --badge-stale-border:    #6e4c00;
+  --badge-active-bg:       #0f2f1a;
+  --badge-active-text:     #3fb950;
+  --badge-active-border:   #196c2e;
+  --badge-merged-bg:       #1e1435;
+  --badge-merged-text:     #a371f7;
+  --badge-merged-border:   #553098;
+  --badge-protected-bg:    #0c2035;
+  --badge-protected-text:  #58a6ff;
+  --badge-protected-border:#1d4880;
+
+  /* Commit type pill colors */
+  --pill-feat-bg:          #0c2035;
+  --pill-feat-text:        #58a6ff;
+  --pill-fix-bg:           #2d0f0f;
+  --pill-fix-text:         #f85149;
+  --pill-docs-bg:          #0f2f1a;
+  --pill-docs-text:        #3fb950;
+  --pill-chore-bg:         #21262d;
+  --pill-chore-text:       #8b949e;
+  --pill-refactor-bg:      #2e2300;
+  --pill-refactor-text:    #d29922;
+  --pill-perf-bg:          #1e1435;
+  --pill-perf-text:        #a371f7;
+  --pill-test-bg:          #2b1b0e;
+  --pill-test-text:        #e3b341;
+  --pill-ci-bg:            #21262d;
+  --pill-ci-text:          #c9d1d9;
+
+  /* Heatmap colors */
+  --heatmap-sync:          #196c2e;
+  --heatmap-minor:         #6e4c00;
+  --heatmap-moderate:      #8a4500;
+  --heatmap-severe:        #6e1a1a;
+  --heatmap-self:          #21262d;
+
+  /* Shadows */
+  --shadow-sm:             0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md:             0 3px 6px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.3);
+  --shadow-lg:             0 8px 24px rgba(0,0,0,0.5);
+  --shadow-overlay:        0 16px 32px rgba(0,0,0,0.6);
+}
