@@ -153,6 +153,13 @@
         App.Branches.loadBranches();
       }
 
+      // ── Phase 3: Trigger tag loading ────────────────────────────────────
+      // tags-ui.js and releases-ui.js subscribe to currentPanel and
+      // self-activate; pre-loading tags populates sidebar counters early.
+      if (window.App.TagsUI) {
+        App.TagsUI.loadAndRender();
+      }
+
     } catch (err) {
       let msg = `Connection failed: ${err.message}`;
 
