@@ -546,7 +546,7 @@
         headers,
         body: JSON.stringify({
           message: 'chore: connectivity test (auto-delete)',
-          content: btoa('Git Repo Insight connectivity test — safe to delete\n'),
+          content: btoa(unescape(encodeURIComponent('Git Repo Insight connectivity test — safe to delete\n'))),
           branch: defaultBranch
         })
       });
