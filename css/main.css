@@ -1263,4 +1263,414 @@ code, kbd, pre, samp {
 
 .mt-4 { margin-top: var(--space-4); }
 .mb-4 { margin-bottom: var(--space-4); }
+.mt-5 { margin-top: var(--space-5); }
+.mb-5 { margin-bottom: var(--space-5); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PHASE 2 — Branch Analysis, Heatmap, Health Checker
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Branch panel controls ─────────────────────────────────────────────── */
+.branch-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.branch-filter-input {
+  flex: 1;
+  min-width: 200px;
+  max-width: 320px;
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.branch-filter-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-subtle);
+}
+
+.branch-filter-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.branch-sort-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.branch-sort-btn--active {
+  color: var(--color-accent) !important;
+  background-color: var(--color-accent-subtle) !important;
+}
+
+.branch-summary {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+/* ─── Branch table ──────────────────────────────────────────────────────── */
+.branch-table .branch-row {
+  cursor: pointer;
+  user-select: none;
+}
+
+.branch-table .branch-row:hover td {
+  background-color: var(--color-accent-subtle);
+}
+
+.branch-table .branch-row--expanded > td {
+  background-color: var(--color-bg-secondary);
+  border-bottom-color: transparent;
+}
+
+.branch-name {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+}
+
+.branch-name-cell {
+  min-width: 160px;
+}
+
+.branch-msg-cell {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.branch-badges-cell {
+  white-space: nowrap;
+}
+
+.branch-badges-cell .badge + .badge {
+  margin-left: var(--space-1);
+}
+
+/* ─── Branch row expansion drawer ───────────────────────────────────────── */
+.branch-expand-row {
+  background-color: var(--color-bg-secondary);
+}
+
+.branch-expand-cell {
+  padding: 0 !important;
+  border-bottom: 2px solid var(--color-accent) !important;
+}
+
+.branch-expand-inner {
+  display: flex;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  flex-wrap: wrap;
+}
+
+.branch-expand-section {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.branch-expand-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-1);
+}
+
+/* ─── Divergence statistics ─────────────────────────────────────────────── */
+.divergence-stat {
+  display: flex;
+  gap: var(--space-5);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+}
+
+.divergence-stat__ahead  { color: var(--color-success); }
+.divergence-stat__behind { color: var(--color-danger);  }
+
+/* ─── Mini commit list (used in branch expand + heatmap detail) ─────────── */
+.mini-commit-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mini-commit {
+  display: grid;
+  grid-template-columns: 56px 1fr auto auto;
+  gap: var(--space-3);
+  align-items: baseline;
+  font-size: var(--font-size-xs);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.mini-commit:last-child {
+  border-bottom: none;
+}
+
+.mini-commit__sha {
+  color: var(--color-accent);
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+.mini-commit__msg {
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-commit__date,
+.mini-commit__author {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ─── Heatmap panel ─────────────────────────────────────────────────────── */
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.heatmap-legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.heatmap-legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.heatmap-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.heatmap-canvas-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  display: inline-block;
+}
+
+.heatmap-canvas {
+  display: block;
+  cursor: crosshair;
+}
+
+/* Tooltip is appended to <body>, positioned via JS */
+.heatmap-tooltip {
+  position: fixed;
+  background-color: rgba(27, 31, 36, 0.92);
+  color: #e6edf3;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 600;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  box-shadow: var(--shadow-md);
+}
+
+.heatmap-tooltip--visible {
+  opacity: 1;
+}
+
+/* ─── Comparison detail panel (below heatmap) ───────────────────────────── */
+.comparison-detail {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  margin-top: var(--space-4);
+  background-color: var(--color-bg-secondary);
+}
+
+.comparison-detail__title {
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* ─── Repository health checker ─────────────────────────────────────────── */
+.health-score-section {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-5);
+}
+
+.health-score-ring {
+  flex-shrink: 0;
+}
+
+.health-score-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.health-score-number {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.health-score-number--excellent { color: var(--color-success); }
+.health-score-number--good      { color: var(--color-accent);  }
+.health-score-number--fair      { color: var(--color-warning); }
+.health-score-number--poor      { color: var(--color-danger);  }
+
+.health-score-label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.health-checklist {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.health-item {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+  font-size: var(--font-size-sm);
+}
+
+.health-item:last-child {
+  border-bottom: none;
+}
+
+.health-item:nth-child(even) {
+  background-color: var(--color-bg-secondary);
+}
+
+.health-item__icon {
+  font-size: var(--font-size-base);
+  text-align: center;
+  flex-shrink: 0;
+  font-weight: 700;
+}
+
+.health-item--present .health-item__icon { color: var(--color-success); }
+.health-item--warning .health-item__icon { color: var(--color-text-muted); }
+.health-item--missing .health-item__icon { color: var(--color-danger);  }
+
+.health-item__name {
+  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-text);
+}
+
+.health-item__detail {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.health-item__status {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+}
+
+.health-item--present .health-item__status { color: var(--color-success); }
+.health-item--missing .health-item__status { color: var(--color-danger);  }
+
+/* ─── Activity metrics in Overview panel ───────────────────────────────── */
+.activity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.activity-metric {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.activity-metric__value {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--color-text);
+  word-break: break-word;
+  line-height: 1.2;
+}
+
+.activity-metric__label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.activity-metric__note {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  word-break: break-all;
+}
 .mb-5 { margin-bottom: var(--space-5); }
