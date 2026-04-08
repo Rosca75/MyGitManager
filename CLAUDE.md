@@ -61,3 +61,13 @@ the blueprint (see docs/BLUEPRINT.md).
 - Conventional Commits: https://www.conventionalcommits.org/
 - Semantic Versioning: https://semver.org/
 - Keep a Changelog: https://keepachangelog.com/
+
+## Development Rules
+- Read before writing. Before modifying any file, read it first. Never assume its current contents.
+- One file at a time. Change one module, verify it is correct, then move on.
+- No file over 150 lines. If a file approaches this limit, split it.
+- No function over 50 lines. Extract helpers when functions grow.
+
+## Forbidden Tools
+Do NOT use Python, Node.js, pip, npm, or any CLI tool. This project runs 
+by opening index.html in a browser. All debugging is done via browser DevTools.
